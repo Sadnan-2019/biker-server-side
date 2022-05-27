@@ -22,6 +22,14 @@ async function run() {
     await client.connect();
 
     const toolsCollection = client.db("bike_tools").collection("tools");
+    const orderCollection = client.db("bike_tools").collection("orders");
+
+    app.post("/orders",async(req,res)=>{
+
+      const orders= req.body;
+      const result = await orderCollection.insertOne(orders);
+      res.send(result);
+    })
 
 
     app.post("/tools",async(req,res)=>{
