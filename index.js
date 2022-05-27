@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { application } = require("express");
 
 require("dotenv").config();
 const app = express();
@@ -29,6 +30,13 @@ async function run() {
       res.send(result);
 
 
+    })
+    app.delete("/delete-tools/:id",async (req,res)=>{
+
+      const id = req.params.id;
+      const query=  {_id: ObjectId(id)}
+      const result = await toolsCollection.deleteOne(query);
+      res.send(result);
     })
 
 
