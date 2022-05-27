@@ -22,6 +22,16 @@ async function run() {
 
     const toolsCollection = client.db("bike_tools").collection("tools");
 
+
+    app.post("/tools",async(req,res)=>{
+      const newTool = req.body;
+      const result = await toolsCollection.insertOne(newTool)
+      res.send(result);
+
+
+    })
+
+
     app.get("/tools", async (req, res) => {
       const query = {};
       const cursor = toolsCollection.find(query);
