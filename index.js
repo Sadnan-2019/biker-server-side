@@ -31,6 +31,14 @@ async function run() {
       res.send(result);
     })
 
+    app.get("/manage-orders",async(req,res)=>{
+
+      const query = {};
+      const cursor = orderCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
 
     app.post("/tools",async(req,res)=>{
       const newTool = req.body;
