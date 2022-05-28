@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { application } = require("express");
 
@@ -17,51 +19,88 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJwt(req, res, next) {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ message: "unauthorixation access" });
+  }
+  const token = authorization.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    // console.log(decoded.foo) // bar
+    req.decoded = decoded;
+    next();
+  });
+}
+
 async function run() {
   try {
     await client.connect();
 
     const toolsCollection = client.db("bike_tools").collection("tools");
     const orderCollection = client.db("bike_tools").collection("orders");
+    const usersCollection = client.db("bike_tools").collection("users");
 
-    app.post("/orders",async(req,res)=>{
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, {
+        expiresIn: "1h",
+      });
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send({ result, token });
+    });
 
-      const orders= req.body;
+    app.post("/orders", async (req, res) => {
+      const orders = req.body;
       const result = await orderCollection.insertOne(orders);
       res.send(result);
-    })
+    });
 
-    app.get("/order",async(req,res)=>{
-      const  customer = req.query.customerEmail;
-      const query = {customerEmail : customer};
-      const order= await orderCollection.find(query).toArray();
-      res.send(order)
-    })
+    app.get("/order", verifyJwt, async (req, res) => {
+      const customer = req.query.customerEmail;
+      // console.log("auth",authorization)
+      const decodedEmail = req.decoded.email;
+      if (customer === decodedEmail) {
+        const query = { customerEmail: customer };
+        const order = await orderCollection.find(query).toArray();
+       return res.send(order);
+      }else{
 
-    app.get("/manage-orders",async(req,res)=>{
+        return res.status(403).send({message:"forbidden access"})
+      }
+    });
 
+    app.get("/manage-orders", async (req, res) => {
       const query = {};
       const cursor = orderCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
-    })
+    });
 
-
-    app.post("/tools",async(req,res)=>{
+    app.post("/tools", async (req, res) => {
       const newTool = req.body;
-      const result = await toolsCollection.insertOne(newTool)
+      const result = await toolsCollection.insertOne(newTool);
       res.send(result);
-
-
-    })
-    app.delete("/delete-tools/:id",async (req,res)=>{
-
+    });
+    app.delete("/delete-tools/:id", async (req, res) => {
       const id = req.params.id;
-      const query=  {_id: ObjectId(id)}
+      const query = { _id: ObjectId(id) };
       const result = await toolsCollection.deleteOne(query);
       res.send(result);
-    })
-
+    });
 
     app.get("/tools", async (req, res) => {
       const query = {};
@@ -70,16 +109,12 @@ async function run() {
       res.send(result);
     });
 
-
     app.get("/purchase/:id", async (req, res) => {
-          const id = req.params.id;
-          const query = { _id: ObjectId(id) };
-          const tool = await toolsCollection.findOne(query);
-          res.send(tool);
-        });
-
-
-
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const tool = await toolsCollection.findOne(query);
+      res.send(tool);
+    });
   } finally {
   }
 }
