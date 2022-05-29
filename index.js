@@ -43,6 +43,23 @@ async function run() {
     const toolsCollection = client.db("bike_tools").collection("tools");
     const orderCollection = client.db("bike_tools").collection("orders");
     const usersCollection = client.db("bike_tools").collection("users");
+    const reviewCollection = client.db("bike_tools").collection("review");
+
+
+    app.post("/review", async (req, res) => {
+      const newTool = req.body;
+      const result = await reviewCollection.insertOne(newTool);
+      res.send(result);
+    });
+
+    app.get("/review",async(req,res)=>{
+
+      const query = {};
+      const cursor = reviewCollection.find(query);
+      const review = await cursor.toArray();
+      res.send(review);
+    })
+
 
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
