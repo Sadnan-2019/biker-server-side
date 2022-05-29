@@ -44,53 +44,37 @@ async function run() {
     const orderCollection = client.db("bike_tools").collection("orders");
     const usersCollection = client.db("bike_tools").collection("users");
 
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
 
-    app.get("/users", verifyJwt, async(req,res)=>{
-
-      const query ={};
+    app.get("/users", verifyJwt, async (req, res) => {
+      const query = {};
       const cursor = usersCollection.find(query);
-      const users = await cursor.toArray()
-      res.send(users)
-    })
+      const users = await cursor.toArray();
+      res.send(users);
+    });
 
     app.put("/user/admin/:email", verifyJwt, async (req, res) => {
       const email = req.params.email;
       const requester = req.decoded.email;
-      const accountRequester = await usersCollection.findOne( {email : requester});
-      if(accountRequester.role === "admin"){
+      const accountRequester = await usersCollection.findOne({
+        email: requester,
+      });
+      if (accountRequester.role === "admin") {
         const filter = { email: email };
         const updateDoc = {
-         $set: {role:"admin"},
-       };
-       const result = await usersCollection.updateOne(
-        filter,
-        updateDoc
-        
-      );
-      res.send(result);
-      }else{
-        return res.status(403).send({message:"forbidden"})
+          $set: { role: "admin" },
+        };
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } else {
+        return res.status(403).send({ message: "forbidden" });
       }
-       
-      
-      
     });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
@@ -124,10 +108,9 @@ async function run() {
       if (customer === decodedEmail) {
         const query = { customerEmail: customer };
         const order = await orderCollection.find(query).toArray();
-       return res.send(order);
-      }else{
-
-        return res.status(403).send({message:"forbidden access"})
+        return res.send(order);
+      } else {
+        return res.status(403).send({ message: "forbidden access" });
       }
     });
 
